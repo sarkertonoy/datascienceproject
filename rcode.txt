@@ -1,0 +1,127 @@
+
+mydata <- read.csv("C:/Cervicalcancer.csv", header = TRUE, sep = ",")
+mydata
+
+
+
+
+all_numeric <- sapply(mydata, is.numeric)
+print(all_numeric)
+
+
+
+
+colSums(is.na(mydata))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+min_max_normalize <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+
+
+
+normalized_data <- as.data.frame(lapply(mydata, min_max_normalize))
+print(normalized_data)
+
+
+library(corrplot)
+target <- mydata$behavior_sexualRisk
+correlation_matrix <- cor(mydata[, -which(names(mydata) == "behavior_sexualRisk")], target)
+corrplot(correlation_matrix, method = "circle", type = "upper", tl.col = "black")
+correlation_values <- cor(mydata[, -which(names(mydata) == "behavior_sexualRisk")], target)
+print(correlation_values)
+
+
+
+
+
+
+correlation_matrix <- cor(mydata)
+
+print(correlation_matrix)
+
+
+
+
+library(corrplot)
+correlation_matrix <- cor(mydata)
+corrplot(correlation_matrix, method = "color")
+
+
+
+
+library(class)
+set.seed(123)
+split_index <- sample(1:nrow(mydata), 0.7 * nrow(mydata))
+train_data <- mydata[split_index, ]
+test_data <- mydata[-split_index, ]
+predictors <- colnames(train_data)[colnames(train_data) != "behavior_sexualRisk"]
+target <- "behavior_sexualRisk"
+
+
+k <- 5  
+
+model <- knn(
+  train = train_data[, predictors],
+  test = test_data[, predictors],
+  cl = train_data$behavior_sexualRisk,
+  k = k
+)
+
+correct_predictions <- sum(model == test_data$behavior_sexualRisk)
+total_predictions <- nrow(test_data)
+accuracy <- correct_predictions / total_predictions
+cat("Accuracy:", accuracy)
+
+
+
+set.seed(123) 
+
+library(caret)
+
+cv_results <- train(
+  x = train_data[, predictors],
+  y = train_data[, target],
+  method = "rf",
+  trControl = trainControl(
+    method = "cv",
+    number = 10
+  )
+)
+print(cv_results)
+#predictions <- predict(model, newdata = test_data)
+
+
+
+
+conf_matrix <- table(Actual = test_data$behavior_sexualRisk, Predicted = predictions)
+print(conf_matrix)
+accuracy_from_confusion <- sum(diag(conf_matrix)) / sum(conf_matrix)
+cat("Accuracy (from confusion matrix):", accuracy_from_confusion, "\n")
+
+calculate_precision <- function(conf_matrix) {
+  true_positive <- conf_matrix[2, 2]
+  false_positive <- conf_matrix[1, 2]
+  
+  precision <- true_positive / (true_positive + false_positive)
+  return(precision)
+}
+
+precision <- calculate_precision(conf_matrix)
+cat("Precision:", precision, "\n")
+
+recall <- conf_matrix[1, 1] / sum(conf_matrix[1, ])
+cat("Recall (Sensitivity):", recall, "\n")
+
